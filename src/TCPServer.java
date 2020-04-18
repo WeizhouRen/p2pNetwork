@@ -14,7 +14,7 @@ public class TCPServer extends Thread {
 
     public TCPServer(Peer peer) throws Exception {
         this.peer = peer;
-        this.serverPort = peer.getPort() + 256;
+        this.serverPort = peer.getPort();
         this.reply = "reply";
         this.serverSocket = new ServerSocket(serverPort);
     }
@@ -147,10 +147,6 @@ public class TCPServer extends Thread {
                         System.out.println("File " + filename + " is stored here");
                         // e.g. "Pee 8 has file 4103 to 2"
                         reply = "Peer " + peer.getId() + " has file " + filename + " to " + source;
-//                        peer.request(peer.getFstPredecessorPort(), "Peer " + peer.getId() + " has file " + filename);
-                        // TODO transfer file here
-
-
                     } else {
                         if (source == peer.getId())
                             System.out.println("File request for " + filename + " has been sent to my successor");
@@ -165,7 +161,16 @@ public class TCPServer extends Thread {
                 // e.g. "Peer 8 has file 4103";
                 else if (clientSentence.contains(" has file ")) {
                     System.out.println(clientSentence);
+                    int serverPort = Integer.parseInt(clientSentence.split(" ")[1]) + 12000;
+                    peer.receiveFile(clientSentence.split(" ")[4], serverPort);
                 }
+                // TODO: Receive file
+                /*
+                // open client to receive 4103 from 8
+                else if (clientSentence.contains("open client to receive ")) {
+                    clientSentenceWords = clientSentence.split(" ");
+                    peer.receiveFile(clientSentenceWords[4], Integer.parseInt(clientSentenceWords[6]) + 12000);
+                } */
 
                 // send reply
                 DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
@@ -180,13 +185,58 @@ public class TCPServer extends Thread {
             if (reply.contains("has file")) {
                 clientSentenceWords = reply.split(" ");
                 int source = Integer.parseInt(clientSentenceWords[6]);
+                String filename = clientSentenceWords[4];
                 try {
                     // Send direct msg to Peer 2
                     peer.request(source + 12000, reply.substring(0, reply.length() - 5));
+
+                    // TODO: Send file to requested peer
+                    /*
+                    //Initialize Sockets again as Peer 8's socket has been closed before
+                    ServerSocket ssock = new ServerSocket(serverPort);
+                    Socket socket = ssock.accept();
+
+                    //The InetAddress specification
+                    InetAddress IA = InetAddress.getByName("localhost");
+
+                    //Specify the file
+                    File file = new File(filename);
+                    FileInputStream fis = new FileInputStream(file);
+                    BufferedInputStream bis = new BufferedInputStream(fis);
+
+                    //Get socket's output stream
+                    OutputStream os = socket.getOutputStream();
+
+                    //Read File Contents into contents array
+                    byte[] contents;
+                    long fileLength = file.length();
+                    long current = 0;
+
+                    long start = System.nanoTime();
+                    while (current != fileLength) {
+                        int size = 10000;
+                        if (fileLength - current >= size)
+                            current += size;
+                        else {
+                            size = (int) (fileLength - current);
+                            current = fileLength;
+                        }
+                        contents = new byte[size];
+                        bis.read(contents, 0, size);
+                        os.write(contents);
+                    }
+                    System.out.print("Sending file " + filename + " to Peer " + source);
+
+                    os.flush();
+                    peer.request(source + 12000, "open client to receive " + filename + " from " + peer.getId());
+                    //File transfer done. Close the socket connection!
+                    socket.close();
+                    ssock.close();
+                    System.out.println("File has been sent");
+                    */
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
             }
 
         } // end of while (true)

@@ -95,15 +95,16 @@ public class Peer {
 
     /**
      * Setup TCP client and send request to corresponding TCP server
+     *
      * @param serverPort destination server port
-     * @param sentence request content
+     * @param sentence   request content
      * @return replied sentence from server
      * @throws IOException
      */
     public String request(int serverPort, String sentence) throws IOException {
 
         // create socket which connects to server
-        Socket clientSocket = new Socket("localhost", serverPort + 256);
+        Socket clientSocket = new Socket("localhost", serverPort);
         // write to server, send forward msg
         DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
         outToServer.writeBytes(sentence + "\n");
@@ -166,8 +167,7 @@ public class Peer {
     }
 
     /**
-     *
-     * @param id - The known Id that will receive the request
+     * @param id     - The known Id that will receive the request
      * @param joinId - Id of the peer who is requesting to join the network
      * @throws Exception
      */
@@ -180,6 +180,7 @@ public class Peer {
 
     /**
      * Update the joining peer's successor before joining request complete
+     *
      * @param joinId
      * @throws IOException
      */
@@ -191,9 +192,37 @@ public class Peer {
 
     /**
      * Add the filename to this peer
+     *
      * @param filename
      */
     public void storedFiles(String filename) {
         storedFiles.add(filename);
+    }
+
+    /**
+     * Open the client socket to receive the file
+     * @param filename
+     * @throws Exception
+     */
+    public void receiveFile(String filename, int serverPort) throws Exception {
+        //Initialize socket
+        Socket socket = new Socket(InetAddress.getByName("localhost"), serverPort);
+        byte[] contents = new byte[10000];
+
+        //Initialize the FileOutputStream to the output file's full path.
+        FileOutputStream fos = new FileOutputStream("_" + filename);
+        BufferedOutputStream bos = new BufferedOutputStream(fos);
+        InputStream is = socket.getInputStream();
+
+        //No of bytes read in one read() call
+        int bytesRead = 0;
+
+        while ((bytesRead = is.read(contents)) != -1)
+            bos.write(contents, 0, bytesRead);
+
+        bos.flush();
+        socket.close();
+
+        System.out.println("File saved successfully!");
     }
 }
