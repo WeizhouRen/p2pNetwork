@@ -111,7 +111,6 @@ public class Peer {
         // create read stream and receive from server
         BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         String sentenceFromServer = inFromServer.readLine();
-        System.out.println("回复：" + sentenceFromServer);
 
         // e.g. "Peer 15 Join request received"
         if (sentenceFromServer.contains("Join request received")) {
@@ -156,6 +155,10 @@ public class Peer {
             System.out.println("Store " + filename + " request accepted");
             storedFiles.add(filename);
         }
+
+//        else if (sentenceFromServer.contains("Peer " + id + " has file")) {
+//            request()
+//        }
 
         // close client socket
         clientSocket.close();

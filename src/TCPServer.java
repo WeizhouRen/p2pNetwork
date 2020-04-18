@@ -15,9 +15,7 @@ public class TCPServer extends Thread {
     public TCPServer(Peer peer) throws Exception {
         this.peer = peer;
         this.serverPort = peer.getPort() + 256;
-        this.reply = "test";
-		/* Create a server socket
-        We will listen on this port for connection request from clients */
+        this.reply = "reply";
         this.serverSocket = new ServerSocket(serverPort);
     }
 
@@ -31,7 +29,8 @@ public class TCPServer extends Thread {
     private boolean isStoredPos(String filename) {
         int position = Integer.parseInt(filename) % 256;
         if ((position <= peer.getId() && position > peer.getFstPredecessor())
-                || (position < peer.getFstSuccessorId() && position > peer.getId() && peer.isFirstPeer())) {
+                || (position < peer.getFstSuccessorId() && position > peer.getId() && peer.isFirstPeer())
+                || (position <= peer.getId() && peer.isFirstPeer() && position < peer.getFstPredecessor())) {
             return true;
         }
         return false;
@@ -146,42 +145,11 @@ public class TCPServer extends Thread {
 
                     if (isStoredPos(filename)) { // Current peer is the correct position
                         System.out.println("File " + filename + " is stored here");
-//                        peer.request(source + 12000, "Peer " + peer.getId() + " has file " + filename);
+                        // e.g. "Pee 8 has file 4103 to 2"
+                        reply = "Peer " + peer.getId() + " has file " + filename + " to " + source;
+//                        peer.request(peer.getFstPredecessorPort(), "Peer " + peer.getId() + " has file " + filename);
                         // TODO transfer file here
-//                        System.out.println("Sending file " + filename + " to Peer " + source);
-//                        //Initialize Sockets
-//                        ServerSocket ssock = new ServerSocket(source + 12000 + 256 * 2);
-//                        Socket socket = ssock.accept();
-//
-//                        //Specify the file
-//                        File file = new File(filename+".txt");
-//                        FileInputStream fis = new FileInputStream(file);
-//                        BufferedInputStream bis = new BufferedInputStream(fis);
-//
-//                        //Get socket's output stream
-//                        OutputStream os = socket.getOutputStream();
-//
-//                        //Read File Contents into contents array
-//                        byte[] contents;
-//                        long fileLength = file.length();
-//                        long current = 0;
-//                        while (current != fileLength) {
-//                            int size = 10000;
-//                            if (fileLength - current >= size)
-//                                current += size;
-//                            else {
-//                                size = (int) (fileLength - current);
-//                                current = fileLength;
-//                            }
-//                            contents = new byte[size];
-//                            bis.read(contents, 0, size);
-//                            os.write(contents);
-//                        }
-//                        os.flush();
-//                        //File transfer done. Close the socket connection!
-//                        socket.close();
-//                        ssock.close();
-//                        System.out.println("The file has been sent");
+
 
                     } else {
                         if (source == peer.getId())
@@ -191,33 +159,12 @@ public class TCPServer extends Thread {
                                     + " has been received, but the file is not stored here");
                         // Send request to next peer
                         peer.request(peer.getFstSuccessorPort(), clientSentence);
+                        reply = "Reply from " + peer.getId();
                     }
                 }
                 // e.g. "Peer 8 has file 4103";
                 else if (clientSentence.contains(" has file ")) {
                     System.out.println(clientSentence);
-//                    int destination = Integer.parseInt(clientSentence.split(" ")[1]);
-//                    String fn = clientSentence.split(" ")[4];
-//
-//                    //Initialize socket
-//                    Socket socket = new Socket(InetAddress.getByName("localhost"), peer.getPort() + 256 * 2);
-//                    byte[] contents = new byte[10000];
-//
-//                    //Initialize the FileOutputStream to the output file's full path.
-//                    FileOutputStream fos = new FileOutputStream("_" + fn);
-//                    BufferedOutputStream bos = new BufferedOutputStream(fos);
-//                    InputStream is = socket.getInputStream();
-//
-//                    //No of bytes read in one read() call
-//                    int bytesRead = 0;
-//
-//                    while((bytesRead=is.read(contents))!=-1)
-//                        bos.write(contents, 0, bytesRead);
-//
-//                    bos.flush();
-//                    socket.close();
-//
-//                    System.out.println("File saved successfully!");
                 }
 
                 // send reply
@@ -228,6 +175,18 @@ public class TCPServer extends Thread {
                 connectionSocket.close();
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+            // e.g. "Peer 8 has file 4103 to 2"
+            if (reply.contains("has file")) {
+                clientSentenceWords = reply.split(" ");
+                int source = Integer.parseInt(clientSentenceWords[6]);
+                try {
+                    // Send direct msg to Peer 2
+                    peer.request(source + 12000, reply.substring(0, reply.length() - 5));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
             }
 
         } // end of while (true)
